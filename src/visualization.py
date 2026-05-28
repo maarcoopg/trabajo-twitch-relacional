@@ -2,7 +2,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import ConfusionMatrixDisplay
+import seaborn as sns
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 
 def save_mature_distribution_plot(df: pd.DataFrame, output_path: str | Path) -> None:
@@ -15,10 +16,10 @@ def save_mature_distribution_plot(df: pd.DataFrame, output_path: str | Path) -> 
     counts = df["mature"].value_counts()
 
     plt.figure(figsize=(6, 4))
-    counts.plot(kind="bar")
-    plt.title("Distribución de la variable mature")
-    plt.xlabel("Mature")
-    plt.ylabel("Número de usuarios")
+    ax = counts.plot(kind="bar", color=["#2a9d8f", "#e76f51"])
+    ax.set_title("Distribución de la variable mature")
+    ax.set_xlabel("Mature")
+    ax.set_ylabel("Número de usuarios")
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
@@ -34,10 +35,7 @@ def save_correlation_matrix(df: pd.DataFrame, output_path: str | Path) -> None:
     corr = df.corr(numeric_only=True)
 
     plt.figure(figsize=(10, 8))
-    plt.imshow(corr, aspect="auto")
-    plt.colorbar()
-    plt.xticks(range(len(corr.columns)), corr.columns, rotation=90)
-    plt.yticks(range(len(corr.columns)), corr.columns)
+    sns.heatmap(corr, annot=False, cmap="viridis", linewidths=0.5)
     plt.title("Matriz de correlación")
     plt.tight_layout()
     plt.savefig(output_path)
@@ -51,7 +49,10 @@ def save_confusion_matrix_plot(model, X_test, y_test, output_path: str | Path) -
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    ConfusionMatrixDisplay.from_estimator(model, X_test, y_test)
+    y_pred = model.predict(X_test)
+    confusion = confusion_matrix(y_test, y_pred)
+
+    ConfusionMatrixDisplay(confusion_matrix=confusion).plot(cmap="Blues")
 
     plt.title("Matriz de confusión")
     plt.tight_layout()
@@ -61,19 +62,21 @@ def save_confusion_matrix_plot(model, X_test, y_test, output_path: str | Path) -
 
 def save_model_comparison_plot(results_df: pd.DataFrame, output_path: str | Path) -> None:
     """
-    Guarda un gráfico comparando los modelos según F1-score.
+    Guarda un gráfico comparando los modelos según todas las métricas.
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    results_df = results_df.sort_values("f1", ascending=False)
+    metric_columns = [column for column in ["accuracy", "precision", "recall", "f1"] if column in results_df.columns]
+    plot_df = results_df.set_index("model")[metric_columns].sort_values(by="f1", ascending=False)
 
-    plt.figure(figsize=(8, 5))
-    plt.bar(results_df["model"], results_df["f1"])
-    plt.title("Comparación de modelos según F1-score")
+    plt.figure(figsize=(10, 6))
+    plot_df.plot(kind="bar", figsize=(10, 6))
+    plt.title("Comparación de modelos")
     plt.xlabel("Modelo")
-    plt.ylabel("F1-score")
-    plt.xticks(rotation=45)
+    plt.ylabel("Puntuación")
+    plt.xticks(rotation=30, ha="right")
+    plt.legend(title="Métrica")
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()

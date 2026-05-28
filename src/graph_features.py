@@ -26,14 +26,26 @@ def get_graph_summary(graph: nx.Graph) -> dict:
     """
     Devuelve información básica del grafo.
     """
+    if graph.number_of_nodes() == 0:
+        return {
+            "num_nodes": 0,
+            "num_edges": 0,
+            "density": 0,
+            "is_connected": False,
+            "num_connected_components": 0,
+            "largest_component_size": 0,
+        }
+
+    is_connected = nx.is_connected(graph) if graph.number_of_nodes() > 0 else False
+
     summary = {
         "num_nodes": graph.number_of_nodes(),
         "num_edges": graph.number_of_edges(),
         "density": nx.density(graph),
-        "is_connected": nx.is_connected(graph)
+        "is_connected": is_connected,
     }
 
-    if nx.is_connected(graph):
+    if is_connected:
         summary["num_connected_components"] = 1
         summary["largest_component_size"] = graph.number_of_nodes()
     else:
@@ -53,6 +65,9 @@ def compute_communities(graph: nx.Graph) -> Dict[int, int]:
     Devuelve un diccionario:
     nodo -> comunidad
     """
+    if graph.number_of_nodes() == 0:
+        return {}
+
     communities = greedy_modularity_communities(graph)
 
     community_dict = {}
@@ -81,17 +96,35 @@ def compute_graph_features(
     - betweenness aproximado
     - community
     """
+    feature_columns = [
+        "new_id",
+        "degree",
+        "degree_centrality",
+        "clustering",
+        "pagerank",
+        "closeness",
+        "betweenness",
+        "community",
+    ]
+
+    if graph.number_of_nodes() == 0:
+        return pd.DataFrame(columns=feature_columns)
+
     degree = dict(graph.degree())
     degree_centrality = nx.degree_centrality(graph)
     clustering = nx.clustering(graph)
     pagerank = nx.pagerank(graph)
     closeness = nx.closeness_centrality(graph)
 
-    betweenness = nx.betweenness_centrality(
-        graph,
-        k=min(betweenness_k, graph.number_of_nodes()),
-        seed=random_state
-    )
+    betweenness_sample_size = min(betweenness_k, graph.number_of_nodes())
+    if betweenness_sample_size >= graph.number_of_nodes():
+        betweenness = nx.betweenness_centrality(graph)
+    else:
+        betweenness = nx.betweenness_centrality(
+            graph,
+            k=betweenness_sample_size,
+            seed=random_state
+        )
 
     communities = compute_communities(graph)
 
@@ -106,4 +139,4 @@ def compute_graph_features(
         "community": [communities[node] for node in graph.nodes()]
     })
 
-    return features_df
+    return features_df[feature_columns]

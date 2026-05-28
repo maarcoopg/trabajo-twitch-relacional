@@ -1,5 +1,4 @@
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
@@ -26,19 +25,20 @@ def get_base_models(random_state: int = 42) -> dict:
     Devuelve los modelos base que se van a comparar.
     """
     models = {
-        "decision_tree": DecisionTreeClassifier(random_state=random_state),
+        "decision_tree": DecisionTreeClassifier(
+            random_state=random_state,
+            class_weight="balanced"
+        ),
 
-        "random_forest": RandomForestClassifier(random_state=random_state),
+        "random_forest": RandomForestClassifier(
+            random_state=random_state,
+            class_weight="balanced"
+        ),
 
         "knn": Pipeline([
             ("scaler", StandardScaler()),
             ("knn", KNeighborsClassifier())
         ]),
-
-        "logistic_regression": Pipeline([
-            ("scaler", StandardScaler()),
-            ("logreg", LogisticRegression(max_iter=1000, random_state=random_state))
-        ])
     }
 
     return models
@@ -66,11 +66,6 @@ def get_param_grids() -> dict:
             "knn__n_neighbors": [3, 5, 7, 9, 11],
             "knn__weights": ["uniform", "distance"],
             "knn__metric": ["euclidean", "manhattan"]
-        },
-
-        "logistic_regression": {
-            "logreg__C": [0.01, 0.1, 1, 10],
-            "logreg__class_weight": [None, "balanced"]
         }
     }
 

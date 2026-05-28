@@ -13,7 +13,7 @@ def json_features_to_dataframe(features_json: dict) -> pd.DataFrame:
     """
     features_df = pd.DataFrame({
         "new_id": [int(node_id) for node_id in features_json.keys()],
-        "num_features": [len(values) for values in features_json.values()]
+        "num_features": [len(values) if values is not None else 0 for values in features_json.values()]
     })
 
     return features_df
@@ -30,14 +30,16 @@ def build_final_dataset(
     - variable objetivo mature
     - num_features procedente del JSON
     """
-    df = graph_features.merge(
-        json_features,
+    df = target.copy()
+
+    df = df.merge(
+        graph_features,
         on="new_id",
         how="left"
     )
 
     df = df.merge(
-        target,
+        json_features,
         on="new_id",
         how="left"
     )
@@ -59,7 +61,21 @@ def build_final_dataset(
 
     df = df[selected_columns]
 
-    df["num_features"] = df["num_features"].fillna(0)
+    numeric_columns = [
+        "degree",
+        "degree_centrality",
+        "clustering",
+        "pagerank",
+        "closeness",
+        "betweenness",
+        "num_features",
+        "days",
+        "views",
+    ]
+    for column in numeric_columns:
+        df[column] = df[column].fillna(0)
+
+    df["community"] = df["community"].fillna(-1).astype(int)
 
     df = df.dropna(subset=["mature"])
 

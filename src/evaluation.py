@@ -40,7 +40,7 @@ def get_confusion_matrix(y_true, y_pred):
     return confusion_matrix(y_true, y_pred)
 
 
-def save_metrics(metrics: list[dict], output_path: str | Path) -> None:
+def save_metrics(metrics: dict | list[dict], output_path: str | Path) -> None:
     """
     Guarda una lista de métricas en un CSV.
 
@@ -49,7 +49,11 @@ def save_metrics(metrics: list[dict], output_path: str | Path) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    df_metrics = pd.DataFrame(metrics)
+    if isinstance(metrics, dict):
+        df_metrics = pd.DataFrame([metrics])
+    else:
+        df_metrics = pd.DataFrame(metrics)
+
     df_metrics.to_csv(output_path, index=False)
 
 
